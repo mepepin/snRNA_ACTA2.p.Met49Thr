@@ -1,7 +1,7 @@
 ---
 title: "Single Nuclear Resolution of ACTA2 Mutation in Thoracic Ascending Aortic Tissue"
 author: "Mark E. Pepin, MD, PhD, MS"
-date: "07/16/2023"
+date: "02/01/2025"
 output:
   html_document: 
     code_folding: hide
@@ -38,14 +38,15 @@ library(kableExtra)
 opts_chunk$set(tidy.opts=list(width.cutoff=30),tidy=FALSE, warning = FALSE, message = FALSE, cache = TRUE, cache.lazy = FALSE)
 ```
 
-**Code Author**: Mark E. Pepin, MD, PhD, MS 
-**Contact**: [pepinme\@gmail.com](mailto:mepepin@bwh.harvard.edu){.email}\
-**Institution**: Brigham and Women's Hospital | Harvard Medical School | Broad Institute of Harvard and MIT \
-**Location**: Boston, MA, USA
+**Code Author**: Mark E. Pepin, MD, PhD, MS **Contact**:
+[pepinme\@gmail.com](mailto:pepin@broadinstitute.org){.email}\
+**Institution**: Brigham and Women's Hospital \| Harvard Medical School \| Stanford Cardiovascular Institute
+\| Broad Institute of Harvard and MIT\
+**Location**: Stanford, CA, USA
 
 # Environment Setup
 
-```{r setup_folders}
+```{r setup_folders, eval = FALSE}
 # Directories
 ifelse(!dir.exists(file.path(paste0("../2_Output/"))), dir.create(file.path(paste0("../2_Output/"))), FALSE)
 ifelse(!dir.exists(file.path(paste0("../2_Output/1_ACTA/"))), dir.create(file.path(paste0("../2_Output/1_ACTA/"))), FALSE)
@@ -74,7 +75,7 @@ options(Seurat.object.assay.version = "v5")
 
 Data were analyzed using the Harvard single-cell sequencing core.
 
-```{r Import.Data_acta2}
+```{r Import.Data_acta2, eval = FALSE}
 library(dplyr)
 library(Seurat)
 library(patchwork)
@@ -91,7 +92,7 @@ taa
 Standard filtering and QC tehcniques were used to remove poor-quality
 reads and nuclei.
 
-```{r QC_acta2}
+```{r QC_acta2, eval = FALSE}
 # Create a feature that quantifies the number of mitochondrial counts (impurity)
 taa[["percent.mt"]] <- PercentageFeatureSet(taa, pattern = "^MT-")
 head(taa@meta.data, 5)
@@ -114,7 +115,7 @@ that normalizes the feature expression measurements for each cell by the
 total expression, multiplies this by a scale factor (10,000 by default),
 and log-transforms the result.
 
-```{r Normalize_acta2}
+```{r Normalize_acta2, eval = FALSE}
 taa_normalized <- NormalizeData(taa_filtered, normalization.method = "LogNormalize", scale.factor = 10000)
 taa_normalized <- FindVariableFeatures(taa_normalized, selection.method = "vst", nfeatures = 10000)
 # Identify the 10 most highly variable genes
@@ -137,7 +138,7 @@ identify the "dimensionality" of the dataset, or the number of principal
 components. From these heuristics, the first 10 dimensions reflect most
 of the variabilitiy present in this dataset.
 
-```{r Dimensionality_acta2}
+```{r Dimensionality_acta2, eval = FALSE}
 # to control for any confounders, we can add the 'vars.to.regress' parameter, including any variable in the metadata <- ScaleData(pbmc, vars.to.regress = "percent.mt")
 acta2_scaled <- RunPCA(acta2_scaled, features = VariableFeatures(object = acta2_scaled))
 acta2_scaled <- RunTSNE(acta2_scaled, assay = "RNA")
@@ -152,9 +153,15 @@ dev.off()
 
 ## Unsupervised Clustering
 
-Standard methods were used to cluster nuclei based on Uniform Manifold Approximation and Projection (UMAP), a non-linear dimensionality reduction technique that projects high-dimensional data into lower dimensions while preserving its local structure and relationships. It works by constructing a weighted graph representing the data’s local neighborhood and then optimizing its layout in a low-dimensional space to capture both local and global data patterns.
+Standard methods were used to cluster nuclei based on Uniform Manifold
+Approximation and Projection (UMAP), a non-linear dimensionality
+reduction technique that projects high-dimensional data into lower
+dimensions while preserving its local structure and relationships. It
+works by constructing a weighted graph representing the data’s local
+neighborhood and then optimizing its layout in a low-dimensional space
+to capture both local and global data patterns.
 
-```{r cluster_acta2}
+```{r cluster_acta2, eval = FALSE}
 # Create a K-nearest neighbor (KNN) graph based on the euclidean distance in PCA space
 acta2_scaled <- FindNeighbors(acta2_scaled, dims = 1:10) # uses the number of dimensions identified in the previous step ("dimensionality")
 # Now  modularity optimization techniques such as the Louvain algorithm
@@ -175,9 +182,10 @@ saveRDS(acta2_scaled, file = "ACTA2_clustered.rds")
 
 ## Annotated UMAP, Density Plots
 
-Annotation of clusters was accomplished by comparing the expression patters of canonical cell type marker genes, shown below.
+Annotation of clusters was accomplished by comparing the expression
+patters of canonical cell type marker genes, shown below.
 
-```{r Annotated.Clusters_acta2}
+```{r Annotated.Clusters_acta2, eval = FALSE}
 library(ggplot2)
 library(dplyr)
 library(Seurat)
@@ -196,6 +204,7 @@ EC2_genes<-c("VWF", "BMPER", "BMX", "NOS1")
 NKT_genes<-c("SKAP1", "RIPOR2", "FYN", "ITGAL", "CD96")
 Macrophage_genes<-c("MRC1", "LGMN", "RBPJ", "F13A1", "RBM47")
 Dendritic_genes<-c("ITGAX", "S100A9", "CSF3R", "CXCL8")
+chondromyocytes <- c("COL2A1", "ACAN", "SOX9")
 # Plot density function
 library(Nebulosa)
 VSMC1_density<-plot_density(acta2_scaled, VSMC1_genes, joint = TRUE, combine = FALSE, pal = "magma")
@@ -208,6 +217,8 @@ EC2_density<-plot_density(acta2_scaled, EC2_genes, joint = TRUE, combine = FALSE
 Macrophage_density<-plot_density(acta2_scaled, Macrophage_genes, joint = TRUE, combine = FALSE, pal = "magma")
 NKT_density<-plot_density(acta2_scaled, NKT_genes, joint = TRUE, combine = FALSE, pal = "magma")
 Dendritic_density<-plot_density(acta2_scaled, Dendritic_genes, joint = TRUE, combine = FALSE, pal = "magma")
+Chondro_density<-plot_density(acta2_scaled, chondromyocytes, joint = TRUE, combine = FALSE, pal = "magma")
+Chondro_density
 # Print
 pdf(file = "../2_Output/1_ACTA/2_Clustering/Density_plots.pdf", height = 3, width = 3)
 VSMC1_density
@@ -365,15 +376,33 @@ gene_list <- gene_list[gene_list %in% rownames(acta2_scaled)]
 gene_expr <- GetAssayData(object = acta2_scaled, assay = "RNA", slot = "data")[gene_list, ]
 sum_expr <- colSums(gene_expr)
 acta2_scaled$Synthetic <- scale(sum_expr)
+# EZH2 Target Score
+# Load the package
+library(GSEABase)
+# Specify the file path to your GMT file
+gmt_file <- "../1_Input/EZH2/EZH2.gmt"
+# Read the GMT file
+gene_sets <- getGmt(gmt_file)
+# Explore the data
+gene_sets_list <- geneIds(gene_sets) # Extract genes for each set
+names(gene_sets_list) # View gene set names
+EZH2_Targets <- gene_sets_list[[3]] # View genes in the first set
+gene_list <- intersect(EZH2_Targets, rownames(acta2_scaled))
+gene_expr <- GetAssayData(object = acta2_scaled, assay = "RNA", slot = "data")[gene_list, ]
+sum_expr <- colSums(gene_expr)
+acta2_scaled$EZH2_Score <- scale(sum_expr)
 # Save file for downstream analysis
 saveRDS(acta2_scaled, file = "../1_Input/ACTA2_annotated.rds")
 ```
 
-
 ## VSMC - Proliferation scores
-To explore whether differences in VSMC subpopulations reflects differential regulation of proliferative pathways, as previously reported by Kwartler et al. 2023, we used the Gene Ontology term GO0008283.
 
-```{r proliferation}
+To explore whether differences in VSMC subpopulations reflects
+differential regulation of proliferative pathways, as previously
+reported by Kwartler et al. 2023, we used the Gene Ontology term
+GO0008283.
+
+```{r proliferation, eval = FALSE}
 # Load the necessary libraries
 acta2_scaled<-readRDS(file = "../1_Input/ACTA2_annotated.rds")
 acta2_scaled <- subset(acta2_scaled, idents = c("VSMC_1", "VSMC_2", "VSMC_3")) # select only the VSMCs
@@ -401,7 +430,10 @@ pdf(file = "../2_Output/1_ACTA/4_Trajectory/Proliferation.Score_UMAP.pdf", heigh
 FeaturePlot(acta2_scaled, features = "proliferation", reduction = "umap") + ggtitle("Proliferation Score") +
 scale_color_gradient2(low = "darkcyan", mid = "white", high = "darkred", midpoint = median(acta2_scaled$proliferation, na.rm = FALSE))
 dev.off()
-
+pdf(file = "../2_Output/1_ACTA/4_Trajectory/EZH2.Score_UMAP.pdf", height = 4, width = 4)
+FeaturePlot(acta2_scaled, features = "EZH2_Score", reduction = "umap") + ggtitle("EZH2 Target Score") +
+scale_color_gradient2(low = "darkcyan", mid = "white", high = "darkred", midpoint = median(acta2_scaled$EZH2_Score, na.rm = FALSE))
+dev.off()
 # Contractility
 go_term <- "GO:0006940" # used in the original 2023 paper
 genes_vector <- AnnotationDbi::select(
@@ -423,21 +455,21 @@ dev.off()
 
 ## VSMC - Trajectory Analysis (Monocle 3)
 
-```{r monocle3_acta2}
+```{r monocle3_acta2, eval = FALSE}
 library(monocle3)
 library(Seurat)
 library(SeuratWrappers)
 library(dplyr)
 library(ggtrace)
 ann_colors = list(CellType = c(VSMC_1="coral2",
-                               VSMC_2="coral4",
-                               VSMC_3="coral3",
-                                 Fibroblast="wheat", 
-                                 EC1="steelblue4",
-                                 EC2="deepskyblue3",
-                                 Macrophage="azure4",
-                                 NKT="gray",
-                                 Dendritic="tan2"))
+              VSMC_2="coral4",
+              VSMC_3="coral3",
+                Fibroblast="wheat", 
+                EC1="steelblue4",
+                EC2="deepskyblue3",
+                Macrophage="azure4",
+                NKT="gray",
+                Dendritic="tan2"))
 acta2_scaled<-readRDS(file = "../1_Input/ACTA2_annotated.rds")
 # Subsetting and re-normalization
 acta2_scaled <- subset(acta2_scaled, idents = c("VSMC_1", "VSMC_2", "VSMC_3")) # select only the VSMCs
@@ -693,12 +725,11 @@ scale_color_gradient2(low = "dodgerblue3", mid = "white", high = "goldenrod2", m
 dev.off()
 ```
 
-
 # TAA Control FFPE Sample
 
 Data were analyzed using the Harvard single-cell sequencing core.
 
-```{r Import.Data_con}
+```{r Import.Data_con, eval=FALSE}
 library(dplyr)
 library(Seurat)
 library(patchwork)
@@ -715,7 +746,7 @@ taa
 Standard filtering and QC tehcniques were used to remove poor-quality
 reads and nuclei.
 
-```{r QC_con}
+```{r QC_con, eval=FALSE}
 # Create a feature that quantifies the number of mitochondrial counts (impurity)
 taa[["percent.mt"]] <- PercentageFeatureSet(taa, pattern = "^MT-")
 head(taa@meta.data, 5)
@@ -738,7 +769,7 @@ that normalizes the feature expression measurements for each cell by the
 total expression, multiplies this by a scale factor (10,000 by default),
 and log-transforms the result.
 
-```{r Normalize_con}
+```{r Normalize_con, eval=FALSE}
 taa_normalized <- NormalizeData(taa_filtered, normalization.method = "LogNormalize", scale.factor = 10000)
 ```
 
@@ -747,7 +778,7 @@ taa_normalized <- NormalizeData(taa_filtered, normalization.method = "LogNormali
 We sought to identify features/genes exhibiting the highest cell-cell
 variability.
 
-```{r cell_diff_con}
+```{r cell_diff_con, eval=FALSE}
 taa_normalized <- FindVariableFeatures(taa_normalized, selection.method = "vst", nfeatures = 10000)
 # Identify the 10 most highly variable genes
 top10 <- head(VariableFeatures(taa_normalized), 10)
@@ -769,7 +800,7 @@ identify the "dimensionality" of the dataset, or the number of principal
 components. From these heuristics, the first 10 dimensions reflect most
 of the variabilitiy present in this dataset.
 
-```{r Dimensionality_TAAng}
+```{r Dimensionality_TAAng, eval=FALSE}
 # to TAAng for any confounders, we can add the 'vars.to.regress' parameter, including any variable in the metadata <- ScaleData(pbmc, vars.to.regress = "percent.mt")
 TAAng_scaled <- RunPCA(con_scaled, features = VariableFeatures(object = con_scaled))
 TAAng_scaled <- RunTSNE(TAAng_scaled, assay = "RNA")
@@ -784,7 +815,7 @@ dev.off()
 
 ## Clustering
 
-```{r cluster_TAAng}
+```{r cluster_TAAng, eval=FALSE}
 # Create a K-nearest neighbor (KNN) graph based on the euclidean distance in PCA space
 TAAng_scaled <- FindNeighbors(TAAng_scaled, dims = 1:10) # uses the number of dimensions identified in the previous step ("dimensionality")
 # Now  modularity optimization techniques such as the Louvain algorithm
@@ -805,7 +836,7 @@ saveRDS(TAAng_scaled, file = "../1_Input/TAA_nongenomic_clustered.rds")
 
 ## Gene Markers
 
-```{r Annotated.Clusters_TAAng}
+```{r Annotated.Clusters_TAAng, eval=FALSE}
 library(ggplot2)
 library(dplyr)
 library(Seurat)
@@ -998,7 +1029,7 @@ saveRDS(TAAng_scaled, file = "../1_Input/TAAng_annotated.rds")
 
 ## VSMC-specific Trajectory Analysis (Monocle 3)
 
-```{r monocle3_TAAng}
+```{r monocle3_TAAng, eval=FALSE}
 library(monocle3)
 library(Seurat)
 library(SeuratWrappers)
@@ -1271,9 +1302,16 @@ between datasets (i.e. batch effects), as well as to perform comparative
 sn-RNA-seq analysis across experimental conditions (ACTA2-mut vs. TAA
 vs. CON).
 
-Data from Chou et al. 2022 were incorporated to provide a more generalizeable understanding of cellular heterogeneity at single-nuclear resolution. Once the individual snRNA-seq datasets were interrogated for quality and normalized, they were fully integrated using standard protocol within Seurat. To accomplish this, shared cell populations were matched across datasets ("anchors") were used to correct for technical differences between datasets (i.e. batch effects), as well as to perform comparative sn-RNA-seq analysis across experimental conditions.
+Data from Chou et al. 2022 were incorporated to provide a more
+generalizeable understanding of cellular heterogeneity at single-nuclear
+resolution. Once the individual snRNA-seq datasets were interrogated for
+quality and normalized, they were fully integrated using standard
+protocol within Seurat. To accomplish this, shared cell populations were
+matched across datasets ("anchors") were used to correct for technical
+differences between datasets (i.e. batch effects), as well as to perform
+comparative sn-RNA-seq analysis across experimental conditions.
 
-```{r Integrate}
+```{r Integrate, eval=FALSE}
 options(future.globals.maxSize= 891289600000000000)
 library(Seurat)
 ACTA2_scaled <- readRDS("../1_Input/ACTA2_annotated.rds")
@@ -1306,7 +1344,7 @@ saveRDS(ifnb, "../1_Input/FFPE_integrated.rds")
 
 ### Cell Annotation
 
-```{r merged.annotation}
+```{r merged.annotation, eval=FALSE}
 library(Seurat)
 library(ggrepel)
 library(RColorBrewer)
@@ -1494,7 +1532,7 @@ saveRDS(TAA_integrated, file = "../1_Input/TAA_snRNA.rds")
 
 ## UMAP and Cellular Proportions
 
-```{r cluster_combined, results='hide'}
+```{r cluster_combined, results='hide', eval=FALSE}
 # Cell-type Specific Differential Expression
 library(ggplot2)
 library(dplyr)
@@ -1546,7 +1584,7 @@ write.csv(cell_type_disease_counts, "cell_types_Disease.csv")
 
 # Differential Analysis
 
-```{r DiffEx_VSMC}
+```{r DiffEx_VSMC, eval=FALSE}
 library(Seurat)
 library(dplyr)
 library(ggtrace)
@@ -1722,10 +1760,9 @@ p <- ggplot(results, aes(log2FC, minuslogpvalue)) +
 }
 ```
 
-
 # Comparing DEGs across Cell Types
 
-```{r celltype_compare}
+```{r celltype_compare, eval=FALSE}
 library(Seurat)
 library(dplyr)
 TAA.combined<-readRDS(file = "../1_Input/TAA_snRNA.rds")
@@ -1759,7 +1796,6 @@ t
 pdf("../2_Output/3_Merged/3_Differential.Expression/Venn_UpSetR.pdf", height = 4, width = 7)
 print(t)
 dev.off()
-
 # Load libraries
 library(clusterProfiler)
 library(org.Hs.eg.db)
@@ -1864,23 +1900,182 @@ library(patchwork)
   dev.off()
 ```
 
+# Cell-cell Interactions
+
+```{r LIANA, eval=FALSE}
+# Load necessary libraries
+library(Seurat)
+library(tidyverse)
+library(magrittr)
+library(liana)
+library(openxlsx)
+library(circlize)
+library(ComplexHeatmap)
+# Create folder structure for output if it does not already exist
+ifelse(!dir.exists(file.path("../2_Output/Regulation/")), dir.create(file.path("../2_Output/Regulation/")), FALSE)
+
+# Import the Seurat object containing the ACTA2-mutant sample
+acta2_scaled <- readRDS(file = "../1_Input/ACTA2_annotated.rds")
+
+# Subset data to include only relevant cell types if needed, e.g., VSMCs, ECs, Myeloid cells, etc.
+# Uncomment and modify the line below if specific cell types need to be isolated
+# acta2_scaled <- subset(acta2_scaled, idents = c("VSMC", "EC", "Myeloid", "Fibroblast"))
+
+# Run LIANA to identify potential cell-cell interactions
+liana_results <- liana_wrap(acta2_scaled) # Use the appropriate resource if working with human data
+liana_results <- liana_aggregate(liana_results)
+
+# Filter LIANA results for significant interactions (e.g., p-value <= 0.05)
+liana_filtered <- liana_results %>% filter(cellphonedb.pvalue <= 0.05)
+
+# Save filtered results to an Excel file
+openxlsx::write.xlsx(liana_filtered, "../2_Output/Regulation/LIANA_ACTA2_Mutant_Significant.xlsx")
+
+# Check unique targets
+unique_targets <- unique(liana_results$target)
+print(unique_targets)  # Print to ensure it's populated correctly
+
+# Create a heatmap of interaction frequencies
+pdf(file = "../2_Output/Regulation/LIANA_Heatmap_ACTA2_Mutant.pdf", height = 4, width = 5)
+heat_freq(liana_filtered)
+dev.off()
+
+# Visualize cell-cell interactions using a dot plot
+pdf(file = "../2_Output/Regulation/LIANA_DotPlot_ACTA2_Mutant.pdf", height = 7, width = 7)
+liana_results %>%
+  liana_dotplot(source_groups = c("VSMC_2"),  # Define the source cell type(s)
+                target_groups = unique_targets[!is.na(unique_targets)],  # Remove NA if any
+                ntop = 20) + 
+  theme(axis.text.x = element_text(size = 10, angle = 45, hjust = 1), 
+        plot.title = element_text(size = 0), 
+        axis.title.x = element_text(size = 0))
+dev.off()
+
+# Define color scheme for each cell type, including all targets in unique_targets
+grid.col <-c(VSMC_1="#b95e4b",
+             VSMC_2="coral4",
+             VSMC_3="coral3",
+             Fibroblast="wheat", 
+             EC1="steelblue4",
+             EC2="deepskyblue3",
+             Macrophage="azure4",
+             NKT="gray",
+             Dendritic="tan2")
+
+# Aggregate interactions to create a weight for each source-target pair
+liana_data_aggregated <- liana_filtered %>%
+  mutate(weight = -log10(aggregate_rank)) %>%  # Convert rank to weight for visualization
+  group_by(source, target) %>%
+  summarise(weight = sum(weight, na.rm = TRUE)) %>%
+  ungroup() %>%
+  filter(!is.infinite(weight) & weight > 0)  # Exclude infinite or zero weights
+
+# Convert to data frame for chord diagram compatibility
+liana_data_aggregated <- as.data.frame(liana_data_aggregated)
+
+# Save the chord diagram to a PDF
+pdf(file = "../2_Output/Regulation/LIANA_ChordDiagram_ACTA2_Mutant.pdf", height = 6, width = 9)
+circlize::chordDiagram(
+  x = liana_data_aggregated,
+  grid.col = grid.col,
+  transparency = 0.5,
+  directional = 1,
+  direction.type = c("diffHeight", "arrows"),
+  link.arr.type = "big.arrow",
+  annotationTrack = "grid",
+  preAllocateTracks = list(track.height = 0.1)
+)
+
+# Add cell type labels with custom spacing
+circlize::circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, CELL_META$ylim[1] + 0.3, CELL_META$sector.index, facing = "bending", niceFacing = TRUE, adj = c(0.5, 0.5))
+}, bg.border = NA)
+
+# Create and draw a legend for cell types
+legend <- ComplexHeatmap::Legend(
+  at = names(grid.col), 
+  title = "Cell Type", 
+  legend_gp = gpar(fill = grid.col)
+)
+ComplexHeatmap::draw(legend, x = unit(1, "npc") - unit(5, "mm"), just = "right")
+
+# Close the PDF device
+dev.off()
+library(Nebulosa)
+plot_density(acta2_scaled, "MYL9", joint = TRUE, combine = FALSE, pal = "magma")
+FeaturePlot(acta2_scaled, features = "LGALS1", reduction = "umap") +
+    scale_color_viridis_c(option = "magma") +  # Apply the "mma" color scale
+    ggtitle("UMAP Plot Showing Expression of LGALS1") +
+    theme_minimal()  # Optional: Apply a minimal theme for a cleaner appearance
+
+```
+
+# ShinyR App Development
+
+```{r shiny, eval=FALSE}
+library(Seurat)
+library(ShinyCell)
+TAA.combined<-readRDS(file = "../1_Input/TAA_snRNA.rds")
+library(clusterProfiler)
+library(org.Mm.eg.db)  # Mouse gene database
+# Define the mouse GO term of interest, e.g., GO:0008150 (biological process)
+go_term <- "GO:0008283" # used in the original 2023 paper
+# Extract gene symbols associated with the specified GO term
+genes_vector <- AnnotationDbi::select(
+  org.Mm.eg.db,                 # Mouse gene database
+  keys = go_term,               # GO term of interest
+  columns = "SYMBOL",           # Retrieve the gene symbols
+  keytype = "GOALL"             # Define the key type as GO terms
+)$SYMBOL
+# Proliferation Score
+genes_vector <- toupper(genes_vector)
+gene_list <- genes_vector[genes_vector %in% rownames(TAA.combined)] 
+gene_expr <- GetAssayData(object = TAA.combined, slot = "data")[gene_list, ]
+sum_expr <- colSums(gene_expr)
+TAA.combined$Proliferation <- scale(sum_expr)
+# Load required libraries
+library(Seurat)
+library(ShinyCell)
+
+# Make a config file
+scConf <- createConfig(
+  obj = TAA.combined,                # Your Seurat object
+  meta.to.include = c("cell_type", "Disease", "Proliferation", "RNA_snn_res.0.4"),  # Metadata columns to include
+  legendCols = 4,                    # Number of columns in categorical metadata legends
+  maxLevels = 50                     # Max number of levels for categorical metadata
+)
+makeShinyApp(
+  obj = TAA.combined,               # Seurat object or file path to the dataset
+  scConf = scConf,                  # Configuration data.table generated in Step 1
+  default.dimred = c("umap_1", "umap_2"),
+  shiny.footnotes = "Pepin et al. 2024",
+  gex.assay = "RNA",                # Assay in Seurat object to use (e.g., "RNA", "integrated")
+  gex.slot = "data",                # Slot in the Seurat assay to use ("data" is default for normalized expression)
+  shiny.title = "ACTA2-p.Met49Thr: snRNA-Sequencing Analysis",  # Title for the Shiny app
+  shiny.dir = "ShinyCellApp",       # Directory to create the app files
+  enableSubset = TRUE,              # Enable subsetting cells functionality in the app
+  defPtSiz = 1.25,                  # Default point size for single cells in plots
+  default.gene1 = "MYH11",          # Primary default gene to show in feature plots
+  default.gene2 = "KLF4"            # Secondary default gene for comparison
+)
+```
 
 # Supplemental Table: R Session Information
 
 All packages and setting are acquired using the following command.
 
 ```{r settings}
-# unloading system variables after session
-homer_tE<-Sys.time()
-homer_t<-homer_tE - homer_tS
-homer_t
-
-end_t<-Sys.time()
-Total_time<-end_t - start_t
-Total_time
-Sys.unsetenv("motifLoc_UP")
-Sys.unsetenv("motifLoc_DOWN")
-Sys.unsetenv("motifLoc_WD")
+# # unloading system variables after session
+# homer_tE<-Sys.time()
+# homer_t<-homer_tE - homer_tS
+# homer_t
+# 
+# end_t<-Sys.time()
+# Total_time<-end_t - start_t
+# Total_time
+# Sys.unsetenv("motifLoc_UP")
+# Sys.unsetenv("motifLoc_DOWN")
+# Sys.unsetenv("motifLoc_WD")
 # Write 
 options(kableExtra.latex.load_packages = FALSE)
 library(kableExtra)
